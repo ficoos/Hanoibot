@@ -4,10 +4,22 @@ project (GC2)
 add_subdirectory(libs/glfw)
 include_directories(libs/glfw/include)
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
-add_definitions("-std=c++11")
+find_package(OpenGL REQUIRED)
+include_directories(${OPENGL_INCLUDE_DIR})
+link_directories(${OPENGL_LIBRARY_DIRS})
+add_definitions(${OPENGL_DEFINITIONS})
+if(NOT OPENGL_GLU_FOUND)
+	message(ERROR " GLU not found!")
+endif(NOT OPENGL_GLU_FOUND)
 
-add_executable(GC2 src/main.cxx)
-target_link_libraries(GC2 glfw ${GLFW_LIBRARIES})
+set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
+add_definitions("-std=c++11 -DGLFW_INCLUDE_GLU")
+
+add_executable(GC2
+	src/main.cxx
+	src/Ring.cxx
+	src/HanoiState.cxx
+)
+target_link_libraries(GC2 glfw ${GLFW_LIBRARIES} ${OPENGL_LIBRARIES})
 
 

@@ -1,14 +1,47 @@
-#include <iostream>
+#include <memory>
 #include <GLFW/glfw3.h>
 
-using namespace std;
+#include "GameState.h"
+#include "HanoiState.h"
 
-static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
-		glfwSetWindowShouldClose(window, GL_TRUE);
+using namespace std;
+using namespace gc;
+
+GameState* current_state = nullptr;
+
+static void key_callback(
+	GLFWwindow* window,
+	int key,
+	int scancode,
+	int action,
+	int mods
+) {
+	if (current_state) {
+		current_state->on_key_pressed(key, scancode, action, mods);
 	}
 }
 
+static void set_buffer_size_callback(
+	GLFWwindow* window,
+	int width,
+	int height
+) {
+	if (current_state) {
+		current_state->on_resize(width, height);
+	}
+}
+
+static void update(double dt) {
+	if (current_state) {
+		current_state->update(dt);
+	}
+}
+
+static void draw() {
+	if (current_state) {
+		current_state->draw();
+	}
+}
 
 int main(int argc, char** argv) {
 	if (!glfwInit()) {
@@ -23,30 +56,31 @@ int main(int argc, char** argv) {
 
 
 	glfwSetKeyCallback(window, key_callback);
+	glfwSetFramebufferSizeCallback(window, set_buffer_size_callback);
+
 	glfwMakeContextCurrent(window);
-	while (!glfwWindowShouldClose(window)) {
-		float ratio;
+
+	auto state = unique_ptr<HanoiState>(new HanoiState());
+	current_state = state.get();
+
+	{
+		// Init projection
 		int width, height;
 		glfwGetFramebufferSize(window, &width, &height);
-		ratio = width / (float) height;
-		glViewport(0, 0, width, height);
-		glClear(GL_COLOR_BUFFER_BIT);
-		glMatrixMode(GL_PROJECTION);
-		glLoadIdentity();
-		glOrtho(-ratio, ratio, -1.f, 1.f, 1.f, -1.f);
-		glMatrixMode(GL_MODELVIEW);
-		glLoadIdentity();
-		glRotatef((float) glfwGetTime() * 50.f, 0.f, 0.f, 1.f);
-		glBegin(GL_TRIANGLES);
-		glColor3f(1.f, 0.f, 0.f);
-		glVertex3f(-0.6f, -0.4f, 0.f);
-		glColor3f(0.f, 1.f, 0.f);
-		glVertex3f(0.6f, -0.4f, 0.f);
-		glColor3f(0.f, 0.f, 1.f);
-		glVertex3f(0.f, 0.6f, 0.f);
-		glEnd();
+		set_buffer_size_callback(window, width, height);
+	}
 
 
+	auto last_frame = glfwGetTime();
+	double dt = 0;
+	while (!glfwWindowShouldClose(window)) {
+		dt = glfwGetTime() - last_frame;
+		update(dt);
+		if (current_state->should_close()) {
+			glfwSetWindowShouldClose(window, GL_TRUE);
+		}
+		last_frame = glfwGetTime();
+		draw();
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
