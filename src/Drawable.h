@@ -3,7 +3,9 @@
 
 namespace gc {
 class Drawable {
-	virtual void draw() = 0;
+public:
+	virtual ~Drawable() {}
+	virtual void draw() const = 0;
 };
 }
 

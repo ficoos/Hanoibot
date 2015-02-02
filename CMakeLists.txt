@@ -17,6 +17,8 @@ add_definitions("-std=c++11 -DGLFW_INCLUDE_GLU")
 
 add_executable(GC2
 	src/main.cxx
+	src/Torus.cpp
+	src/Pole.cpp
 	src/Ring.cxx
 	src/HanoiState.cxx
 )

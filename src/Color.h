@@ -15,7 +15,7 @@ public:
 	Color(float r, float g, float b) : r{r}, g{g}, b{b}, a{1} {}
 	Color(float r, float g, float b, float a) : r{r}, g{g}, b{b}, a{a} {}
 
-	void set() { glColor4f(r, g, b, a); };
+	void set() const { glColor4f(r, g, b, a); };
 };
 }
 #endif

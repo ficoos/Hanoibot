@@ -3,9 +3,13 @@
 
 #include "GameState.h"
 #include "HanoiState.h"
+#include "Mouse.h"
 
 using namespace std;
 using namespace gc;
+
+double last_cur_x = 0;
+double last_cur_y = 0;
 
 GameState* current_state = nullptr;
 
@@ -60,7 +64,8 @@ int main(int argc, char** argv) {
 
 	glfwMakeContextCurrent(window);
 
-	auto state = unique_ptr<HanoiState>(new HanoiState());
+	auto mouse = unique_ptr<Mouse>(new Mouse(window));
+	auto state = unique_ptr<HanoiState>(new HanoiState(mouse.get()));
 	current_state = state.get();
 
 	{
@@ -74,6 +79,7 @@ int main(int argc, char** argv) {
 	auto last_frame = glfwGetTime();
 	double dt = 0;
 	while (!glfwWindowShouldClose(window)) {
+		double mx, my;
 		dt = glfwGetTime() - last_frame;
 		update(dt);
 		if (current_state->should_close()) {
@@ -83,6 +89,15 @@ int main(int argc, char** argv) {
 		draw();
 		glfwSwapBuffers(window);
 		glfwPollEvents();
+		glfwGetCursorPos(window, &mx, &my);
+		if (mx != last_cur_x || my != last_cur_y) {
+			current_state->on_mouse_move(
+				last_cur_x - mx,
+				last_cur_y - my
+			);
+			last_cur_x = mx;
+			last_cur_y = my;
+		}
 	}
 
 	glfwDestroyWindow(window);
