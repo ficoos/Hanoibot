@@ -1,0 +1,3 @@
+- Q E D - will pick up or place a ring in on a pole
+- up,down,a,z - move the arm
+- left click + drag - rotate
