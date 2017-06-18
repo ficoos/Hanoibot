@@ -20,6 +20,7 @@ add_executable(GC2
 	src/Torus.cpp
 	src/Pole.cpp
 	src/Ring.cxx
+	src/Arm.cpp
 	src/HanoiState.cxx
 )
 target_link_libraries(GC2 glfw ${GLFW_LIBRARIES} ${OPENGL_LIBRARIES})

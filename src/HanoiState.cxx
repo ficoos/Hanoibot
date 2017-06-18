@@ -7,6 +7,18 @@ using namespace gc;
 static const double near = 1;
 static const double far = 200;
 static const int ring_count = 10;
+static const Color ring_colors[] {
+	Color(1, 0, 0),
+	Color(0, 1, 0),
+	Color(0, 0, 1),
+	Color(0, 1, 1),
+	Color(1, 1, 0),
+	Color(1, 0, 1),
+	Color(1, .5, 1),
+	Color(1, .5, .5),
+	Color(.5, .5, 0),
+	Color(.5, .5, 1)
+};
 
 HanoiState::HanoiState(Mouse * mouse) {
 	_mouse = mouse;
@@ -22,26 +34,65 @@ void HanoiState::on_enter() {
 	glShadeModel (GL_SMOOTH);
 
 	_should_close = false;
-	_rotation_speed = 30;
-	_current_rotation = 0;
 	_camera_pos = {0, 0, -20};
-	_pole_a.position ( {-5, 0, 0});
-	_pole_b.position ( {0, 0, 0});
-	_pole_c.position ( {5, 0, 0});
+	_pole_a.position ( {-5, -5, 0});
+	_pole_b.position ( {0, -5, 0});
+	_pole_c.position ( {5, -5, 0});
+	goal = nullptr;
 	
-	_pole_a.height(ring_count * 50);
-	_pole_b.height(ring_count * 50);
-	_pole_c.height(ring_count * 50);
+	_pole_a.height(ring_count * 0.9);
+	_pole_b.height(ring_count * 0.9);
+	_pole_c.height(ring_count * 0.9);
+	
+	_arm.position({0, 0, -10});
+	_arm.goal({0, -5, 0});
 	
 	for (int i = 0; i < ring_count; i++) {
-		auto ring = shared_ptr<Ring>(new Ring((ring_count - i) * 0.2));
+		auto ring = shared_ptr<Ring>(new Ring((ring_count - i) * 0.2 + 0.5, ring_colors[i]));
 		_rings.push_front(ring);
 		_pole_a.addRing(ring);
 	}
 };
 
 void HanoiState::update (double dt) {
-	_current_rotation += _rotation_speed * dt;
+	_arm.update(dt);
+	if (_arm.hasReachedGoal()) {
+		if (goal) {
+			if (!isAbovePole) {
+				Vector3D target = goal->position();
+				auto topRing = goal->peekRing();
+				if (topRing != nullptr) {
+					target += topRing->position() + Vector3D(0, 0.425, 0);
+				}
+				if (_arm.ring() != nullptr) {
+					target -= Vector3D(0, 0, _arm.ring()->radius() + .4f);
+				} else if (topRing != nullptr) {
+					target -= Vector3D(0, 0, topRing->radius() + .4f);
+				} else {
+					_arm.goal({0, 0, -5});
+					goal = nullptr;
+					return;
+				}
+				isAbovePole = true;
+				_arm.goal(target);
+			} else {
+				if (_arm.ring() != nullptr) {
+					goal->addRing(_arm.ring());
+					_arm.unsetRing();
+				} else if (goal->peekRing() != nullptr) {
+					_arm.setRing(goal->popRing());
+				}
+				_arm.goal(goal->position() + Vector3D(0, goal->height() + 1, -.4f));
+				isAbovePole = false;
+				goal = nullptr;
+			}
+		} else {
+			if (!isAbovePole) {
+				_arm.goal({0, 0, -5});
+				isAbovePole = true;
+			}
+		}
+	}
 };
 
 void HanoiState::on_mouse_move (double dx, double dy) {
@@ -72,22 +123,34 @@ void HanoiState::draw() {
 
 	_camera_pos.translate();
 	_camera_rot.mult();
-	GLfloat ambientColor[] = {0.2f, 0.2f, 0.2f, 1.0f};
+	GLfloat ambientColor[] = {0.02f, 0.02f, 0.02f, 1.0f};
 	glLightModelfv (GL_LIGHT_MODEL_AMBIENT, ambientColor);
 
-	GLfloat lightColor0[] = {0.5f, 0.5f, 0.5f, 1.0f}; //Color (0.5, 0.5, 0.5)
-	GLfloat lightPos0[] = {4.0f, 0.0f, 8.0f, 1.0f}; //Positioned at (4, 0, 8)
+	GLfloat lightColor0[] = {0.5f, 0.5f, 0.5f, 1.0f};
+	GLfloat lightPos0[] = {2.0f, -5.0f, 3.0f, 1.0f};
 	glLightfv (GL_LIGHT0, GL_DIFFUSE, lightColor0);
 	glLightfv (GL_LIGHT0, GL_POSITION, lightPos0);
 
 	draw_object(_pole_a);
 	draw_object(_pole_b);
 	draw_object(_pole_c);
-	for (auto ring : _rings) {
-		draw_object(*ring);
-	}
+	draw_object(_arm);
 	glPopMatrix();
 };
+
+void HanoiState::goToPole(Pole & pole) {
+	auto topRing = pole.peekRing();
+	Vector3D target = pole.position() + Vector3D(0, pole.height() + 1, -4.f);
+	if (_arm.ring() != nullptr) {
+		target -= Vector3D(0, 0, _arm.ring()->radius() + .4f);
+	} else if (topRing != nullptr) {
+		target -= Vector3D(0, 0, topRing->radius() + .4f);
+	}
+	isAbovePole = false;
+	_arm.goal(target);
+	goal = &pole;
+}
+
 void HanoiState::on_key_pressed (
         int key,
         int scancode,
@@ -98,6 +161,33 @@ void HanoiState::on_key_pressed (
 		switch(key) {
 		case GLFW_KEY_ESCAPE:
 			_should_close = true;
+			break;
+		case GLFW_KEY_Q:
+			goToPole(_pole_a);
+			break;
+		case GLFW_KEY_W:
+			goToPole(_pole_b);
+			break;
+		case GLFW_KEY_E:
+			goToPole(_pole_c);
+			break;
+		case GLFW_KEY_UP:
+			_arm.goal(_arm.goal() + Vector3D(0, 1, 0));
+			break;
+		case GLFW_KEY_LEFT:
+			_arm.goal(_arm.goal() + Vector3D(0, 0, 1));
+			break;
+		case GLFW_KEY_RIGHT:
+			_arm.goal(_arm.goal() + Vector3D(0, 0, -1));
+			break;
+		case GLFW_KEY_DOWN:
+			_arm.goal(_arm.goal() + Vector3D(0, -1, 0));
+			break;
+		case GLFW_KEY_A:
+			_arm.goal(_arm.goal() + Vector3D(-1, 0, 0));
+			break;
+		case GLFW_KEY_Z:
+			_arm.goal(_arm.goal() + Vector3D(1, 0, 0));
 			break;
 		case GLFW_KEY_R:
 			_camera_rot = Matrix();

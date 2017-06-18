@@ -8,6 +8,7 @@ namespace gc {
 
 Ring::Ring (float radius, Color color) {
 	_torus = Torus(radius, .4);
+	_radius = radius;
 	_color = color;
 }
 
@@ -18,6 +19,10 @@ Vector3D Ring::position() const {
 
 void Ring::position (Vector3D v) {
 	_position = v;
+}
+
+float Ring::radius() const {
+	return _radius;
 }
 
 Ring::~Ring() {}

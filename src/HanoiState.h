@@ -8,6 +8,7 @@
 #include "Pole.h"
 #include "Matrix.h"
 #include "Mouse.h"
+#include "Arm.h"
 
 using namespace std;
 
@@ -28,13 +29,15 @@ public:
 	virtual bool should_close() override;
 	virtual void on_mouse_move(double dx, double dy) override;
 private:
+	void goToPole(Pole & pole);
 	void draw_object(const Drawable & obj);
 	bool _should_close;
-	float _rotation_speed;
-	float _current_rotation;
 	Pole _pole_a;
 	Pole _pole_b;
 	Pole _pole_c;
+	Pole * goal;
+	bool isAbovePole;
+	Arm _arm;
 	Vector3D _camera_pos;
 	Matrix _camera_rot;
 	Mouse * _mouse;

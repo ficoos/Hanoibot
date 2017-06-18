@@ -13,6 +13,7 @@ public:
 	virtual ~Ring();
 	void position(Vector3D v) override;
 	Vector3D position() const override;
+	float radius() const;
 
 	void draw() const override;
 private:
